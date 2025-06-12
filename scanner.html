@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Pacchi</title>
+    <!-- Stile per rendere l'interfaccia gradevole -->
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 15px; background-color: #f0f0f0; color: #333; }
+        #reader { width: 100%; border: 2px solid #ccc; border-radius: 8px; overflow: hidden; }
+        #result { margin-top: 15px; }
+        #scanned-list { list-style-type: none; padding: 0; }
+        #scanned-list li { background-color: white; padding: 10px; margin-bottom: 5px; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        button { width: 100%; padding: 15px; font-size: 16px; font-weight: bold; color: white; background-color: #007bff; border: none; border-radius: 8px; cursor: pointer; margin-top: 15px; }
+        button:disabled { background-color: #cccccc; }
+        #status { text-align: center; margin-top: 10px; font-style: italic; color: #666; }
+    </style>
+    <!-- Includiamo la libreria per lo scanner e quella per comunicare con Telegram -->
+    <script src="https://unpkg.com/html5-qrcode/html5-qrcode.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+    <div id="reader"></div>
+    <div id="result">
+        <h4>Pacchi Scansionati: <span id="scan-count">0</span></h4>
+        <ul id="scanned-list"></ul>
+    </div>
+    <button id="submit-button" disabled>Crea il mio Percorso</button>
+    <div id="status"></div>
+
+    <script>
+        const scannedCodes = new Set();
+        const scannedList = document.getElementById('scanned-list');
+        const scanCount = document.getElementById('scan-count');
+        const submitButton = document.getElementById('submit-button');
+        const statusDiv = document.getElementById('status');
+        
+        // Inizializza l'SDK di Telegram
+        Telegram.WebApp.ready();
+        const tg = window.Telegram.WebApp;
+
+        function onScanSuccess(decodedText, decodedResult) {
+            // Aggiungi il codice solo se non è già stato scansionato
+            if (!scannedCodes.has(decodedText)) {
+                scannedCodes.add(decodedText);
+                
+                // Aggiorna l'interfaccia utente
+                const listItem = document.createElement('li');
+                listItem.textContent = decodedText;
+                scannedList.appendChild(listItem);
+                scanCount.textContent = scannedCodes.size;
+
+                // Vibra per dare un feedback
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+                
+                // Abilita il pulsante se c'è almeno un pacco
+                if (scannedCodes.size > 0) {
+                    submitButton.disabled = false;
+                }
+            }
+        }
+
+        const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} });
+        html5QrcodeScanner.render(onScanSuccess);
+
+        submitButton.addEventListener('click', function() {
+            statusDiv.textContent = 'Invio dati al bot...';
+            submitButton.disabled = true;
+
+            // Prepara i dati da inviare al nostro server Python/Flask
+            const dataToSend = {
+                scanned_ids: Array.from(scannedCodes),
+                chat_id: tg.initDataUnsafe.user.id
+            };
+
+            // Invia i dati al backend
+            // IMPORTANTE: questa URL deve essere quella pubblica del tuo server (la spieghiamo dopo)
+            // Per ora, la lasciamo vuota. Dovrà puntare al tuo server.
+            fetch('/submit_scans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataToSend)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Se tutto va bene, chiudi la Web App
+                    tg.close();
+                } else {
+                    statusDiv.textContent = 'Errore: ' + data.message;
+                    submitButton.disabled = false;
+                }
+            })
+            .catch(error => {
+                statusDiv.textContent = 'Errore di connessione con il server.';
+                submitButton.disabled = false;
+            });
+        });
+
+    </script>
+</body>
+</html>
