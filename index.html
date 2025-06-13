@@ -41,27 +41,30 @@
         const tg = window.Telegram.WebApp;
 
         function onScanSuccess(decodedText, decodedResult) {
-            // Aggiungi il codice solo se non è già stato scansionato
-            if (!scannedCodes.has(decodedText)) {
-                scannedCodes.add(decodedText);
-                
-                // Aggiorna l'interfaccia utente
-                const listItem = document.createElement('li');
-                listItem.textContent = decodedText;
-                scannedList.appendChild(listItem);
-                scanCount.textContent = scannedCodes.size;
+    // Pulisci il testo da spazi e "a capo" all'inizio e alla fine
+    const cleanedText = decodedText.trim();
 
-                // Vibra per dare un feedback
-                if (tg.HapticFeedback) {
-                    tg.HapticFeedback.notificationOccurred('success');
-                }
-                
-                // Abilita il pulsante se c'è almeno un pacco
-                if (scannedCodes.size > 0) {
-                    submitButton.disabled = false;
-                }
-            }
+    // Aggiungi il codice solo se non è già stato scansionato
+    if (!scannedCodes.has(cleanedText)) {
+        scannedCodes.add(cleanedText);
+        
+        // Aggiorna l'interfaccia utente
+        const listItem = document.createElement('li');
+        listItem.textContent = cleanedText;
+        scannedList.appendChild(listItem);
+        scanCount.textContent = scannedCodes.size;
+
+        // Vibra per dare un feedback
+        if (tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('success');
         }
+        
+        // Abilita il pulsante se c'è almeno un pacco
+        if (scannedCodes.size > 0) {
+            submitButton.disabled = false;
+        }
+    }
+}
 
         const html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: {width: 250, height: 250} });
         html5QrcodeScanner.render(onScanSuccess);
