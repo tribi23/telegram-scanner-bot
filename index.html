@@ -79,7 +79,7 @@
             // Invia i dati al backend
             // IMPORTANTE: questa URL deve essere quella pubblica del tuo server (la spieghiamo dopo)
             // Per ora, la lasciamo vuota. Dovrà puntare al tuo server.
-            fetch('/submit_scans', {
+            fetch('http://192.168.1.48:5000/submit_scans', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dataToSend)
